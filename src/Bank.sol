@@ -1,0 +1,175 @@
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.4;
+
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Euro} from "./Euro.sol";
+import {Account} from "./Account.sol";
+import {Share} from "./Share.sol";
+
+contract Bank is Ownable {
+
+    error AccountAlreadyExists();
+    error AccountDoesNotExist();
+
+    event BankCreated(string bankName);
+    event AccountCreated();
+    event MoneyTransferred(address indexed fromAccount, address indexed to, uint256 amount);
+    event ShareCreated(string indexed name, string indexed symbol, uint256 initialSupply);
+
+    string public bankName;
+    Euro public euroToken;
+
+    mapping(string name => mapping(string symbol => Share)) private shares;
+
+    mapping(bytes32 hashCode => Account) private accounts;
+
+     /**
+     * @dev Constructor for the Bank contract.
+     * @param _bankName The name of the bank.
+     */
+    constructor(string memory _bankName) Ownable(msg.sender) {
+        bankName = _bankName;
+        euroToken = new Euro("Euro Token", "EUR");
+        emit BankCreated(_bankName);
+    }
+
+    /**
+     * @dev Creates a new account.
+     * @param _firstname The first name of the account holder.
+     * @param _lastname The last name of the account holder.
+     * @param _numberAccount The account number.
+     * @return The address of the newly created account.
+     */
+    function createAccount(string memory _firstname, string memory _lastname, uint256 _numberAccount) external onlyOwner returns (address) {
+        bytes32 hashCode = getHashCode(_firstname, _lastname, _numberAccount);
+        require(address(accounts[hashCode]) == address(0), AccountAlreadyExists());
+        Account newAccount = new Account(euroToken);
+        accounts[hashCode] = newAccount;
+        emit AccountCreated();
+        return address(newAccount);
+    }
+
+    /**
+     * @dev Retrieves the address of an account.
+     * @param _firstname The first name of the account holder.
+     * @param _lastname The last name of the account holder.
+     * @param _numberAccount The account number.
+     * @return The address of the account.
+     */
+    function getAccount(string memory _firstname, string memory _lastname, uint256 _numberAccount) external onlyOwner view returns (address) {
+        bytes32 hashCode = getHashCode(_firstname, _lastname, _numberAccount);
+        Account account = accounts[hashCode];
+        require(address(account) != address(0), AccountDoesNotExist());
+        return address(account);
+    }
+
+    /**
+     * @dev Retrieves the balance of an account.
+     * @param _account The address of the account.
+     * @return The balance of the account.
+     */
+    function getBalanceOfAccount(address _account) external onlyOwner view returns (uint256) {
+        require(address(_account) != address(0), AccountDoesNotExist());
+        return euroToken.balanceOf(address(_account));
+    }
+
+    /**
+     * @dev Transfers money from one account to another.
+     * @param _from The address of the account to transfer money from.
+     * @param _to The address of the account to transfer money to.
+     * @param _amount The amount of money to transfer.
+     * @return A boolean indicating whether the transfer was successful.
+     */
+    function transferMoneyToAccount(address _from,address _to, uint256 _amount) external onlyOwner returns(bool ) {
+        bool success = Account(_from).transfer(_to, _amount);
+        emit MoneyTransferred(_from, _to, _amount);
+        return success;
+    }
+
+    /**
+     * @dev Creates a new share.
+     * @param _name The name of the share.
+     * @param _symbol The symbol of the share.
+     * @param _initialSupply The initial supply of the share.
+     */
+    function createShares(string memory _name, string memory _symbol,uint256 _initialSupply) external onlyOwner {
+        Share newShare = new Share(_name, _symbol, _initialSupply,1 ether, address(euroToken));
+        shares[_name][_symbol] = newShare;
+        emit ShareCreated( _name, _symbol, _initialSupply);
+    }
+
+    /**
+     * @dev Retrieves the address of a share.
+     * @param _name The name of the share.
+     * @param _symbol The symbol of the share.
+     * @return The address of the share.
+     */
+    function getShareAddress(string memory _name, string memory _symbol) external onlyOwner view returns(Share) {
+        Share share = shares[_name][_symbol];
+        return share;
+    }
+
+    /**
+    * @dev Places an order on a share.
+    * @param _name The name of the share.
+    * @param _symbol The symbol of the share.
+    * @param amount The amount of share to buy or sell.
+    * @param orderPrice The price of the share.
+    * @param isBuy Whether the order is a buy order or a sell order.
+    * @param _from The address placing the order.
+    * @return The order ID.
+    */
+    function placeOrderOnShare(string memory _name, string memory _symbol, uint256 amount, uint256 orderPrice, bool isBuy, address _from) external onlyOwner returns(uint256){
+        Share share = shares[_name][_symbol];
+        return share.placeOrder(amount, orderPrice, isBuy,_from);
+    }
+
+    /**
+    * @dev Buys a share.
+    * @param _name The name of the share.
+    * @param _symbol The symbol of the share.
+    * @param amount The amount of share to buy.
+    * @param _to The address to buy the share to.
+    * @param _price The price of the share at the time of purchase.
+    * @return A boolean indicating whether the purchase was successful.    
+    */
+    function buyShare(string memory _name, string memory _symbol, uint256 amount, address _to, uint256 _price) external onlyOwner returns(bool) {
+        Share share = shares[_name][_symbol];
+        approveBank(_to, amount * _price);
+        euroToken.transferFrom(_to, address(share), amount * _price);
+        return share.buy(amount, _to, _price);
+    }
+
+    /**
+    * @dev Approves the bank to spend euros on behalf of an account.
+    * @param _from The address of the account.
+    * @param amount The amount of euros to approve.
+    * @return A boolean indicating whether the approval was successful. 
+    */
+    function approveBank(address _from, uint256 amount) internal onlyOwner returns (bool) {
+        return euroToken.approveFrom(_from,address(this), amount);
+    }
+
+    /**
+    * @dev Retrieves the allowance of the bank to spend euros on behalf of an account.
+    * @param _from The address of the account.
+    * @return The allowance of the bank. 
+    */
+    function allowanceBank(address _from) internal view onlyOwner returns (uint256) {
+        return euroToken.allowance(_from, address(this));
+    }
+
+    /**
+     * @dev Generates a hash code for an account based on the account holder's details.
+     * @param _firstname The first name of the account holder.
+     * @param _lastname The last name of the account holder.
+     * @param _numberAccount The account number.
+     * @return The generated hash code.
+     */
+    function getHashCode(string memory _firstname, string memory _lastname, uint256 _numberAccount) internal pure returns (bytes32) {
+        return keccak256(abi.encodePacked(_firstname, _lastname, _numberAccount));
+    }
+    
+
+}

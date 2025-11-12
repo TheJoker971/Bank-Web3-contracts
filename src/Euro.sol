@@ -10,7 +10,12 @@ contract Euro is ERC20 , Ownable{
         _mint(msg.sender, 1000000000000000000000000);
     }
 
-    function mint(address _to, uint256 _amount) public onlyOwner {
+    function mint(address _to, uint256 _amount) external onlyOwner {
         _mint(_to, _amount);
+    }
+
+    function approveFrom(address owner, address spender, uint256 amount) external onlyOwner returns (bool) {
+        _approve(owner, spender, amount);
+        return true;
     }
 }
