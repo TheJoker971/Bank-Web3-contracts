@@ -93,6 +93,7 @@ contract Bank is Ownable {
      * @param _name The name of the share.
      * @param _symbol The symbol of the share.
      * @param _initialSupply The initial supply of the share.
+     * @param _price The price of the share.
      */
     function createShare(string memory _name, string memory _symbol,uint256 _initialSupply,uint256 _price) external onlyOwner {
         Share newShare = new Share(_name, _symbol, _initialSupply,_price, address(euroToken));
