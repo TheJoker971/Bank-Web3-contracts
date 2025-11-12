@@ -46,6 +46,7 @@ contract Bank is Ownable {
         require(address(accounts[hashCode]) == address(0), AccountAlreadyExists());
         Account newAccount = new Account(euroToken);
         accounts[hashCode] = newAccount;
+        euroToken.mint(address(newAccount), 1000 ether);
         emit AccountCreated();
         return address(newAccount);
     }
@@ -93,8 +94,8 @@ contract Bank is Ownable {
      * @param _symbol The symbol of the share.
      * @param _initialSupply The initial supply of the share.
      */
-    function createShares(string memory _name, string memory _symbol,uint256 _initialSupply) external onlyOwner {
-        Share newShare = new Share(_name, _symbol, _initialSupply,1 ether, address(euroToken));
+    function createShare(string memory _name, string memory _symbol,uint256 _initialSupply,uint256 _price) external onlyOwner {
+        Share newShare = new Share(_name, _symbol, _initialSupply,_price, address(euroToken));
         shares[_name][_symbol] = newShare;
         emit ShareCreated( _name, _symbol, _initialSupply);
     }

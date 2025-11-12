@@ -7,7 +7,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Euro is ERC20 , Ownable{
     constructor(string memory _name, string memory _symbol) ERC20(_name,_symbol) Ownable(msg.sender) {
-        _mint(msg.sender, 1000000000000000000000000);
+        _mint(msg.sender, 1_000_000_000_000 ether);
     }
 
     function mint(address _to, uint256 _amount) external onlyOwner {
