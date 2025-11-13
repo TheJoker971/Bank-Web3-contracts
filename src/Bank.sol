@@ -9,7 +9,6 @@ import {Share} from "./Share.sol";
 import {Staking} from "./Staking.sol";
 
 contract Bank is Ownable {
-
     error StakingDoesNotExist(string name);
 
     error AccountAlreadyExists();
@@ -26,7 +25,6 @@ contract Bank is Ownable {
 
     string public bankName;
     Euro public euroToken;
-
 
     mapping(string name => mapping(string symbol => Share)) private shares;
 
@@ -236,11 +234,7 @@ contract Bank is Ownable {
         emit StakingCreated(_name, _interestRate);
     }
 
-    function depositToStaking(string memory _name, address _from, uint256 amount)
-        external
-        onlyOwner
-        returns (bool)
-    {
+    function depositToStaking(string memory _name, address _from, uint256 amount) external onlyOwner returns (bool) {
         require(address(stakings[_name]) != address(0), StakingDoesNotExist(_name));
         Staking staking = stakings[_name];
         approveBank(_from, amount);
@@ -248,21 +242,13 @@ contract Bank is Ownable {
         return staking.deposit(_from, amount);
     }
 
-    function withdrawAllFromStaking(string memory _name, address to)
-        external
-        onlyOwner
-        returns (bool)
-    {
+    function withdrawAllFromStaking(string memory _name, address to) external onlyOwner returns (bool) {
         require(address(stakings[_name]) != address(0), StakingDoesNotExist(_name));
         Staking staking = stakings[_name];
         return staking.withdrawAll(to);
     }
 
-    function withdrawRewardFromStaking(string memory _name, address to)
-        external
-        onlyOwner
-        returns (bool)
-    {
+    function withdrawRewardFromStaking(string memory _name, address to) external onlyOwner returns (bool) {
         require(address(stakings[_name]) != address(0), StakingDoesNotExist(_name));
         Staking staking = stakings[_name];
         return staking.withdrawReward(to);

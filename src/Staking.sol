@@ -5,7 +5,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Staking is Ownable {
-
     struct Deposit {
         uint256 amount;
         uint256 timestamp;
@@ -18,19 +17,19 @@ contract Staking is Ownable {
 
     mapping(address user => Deposit) private deposits;
 
-    constructor(IERC20 _token,string memory _name,uint256 _interestRate) Ownable(msg.sender) {
+    constructor(IERC20 _token, string memory _name, uint256 _interestRate) Ownable(msg.sender) {
         euro = _token;
         name = _name;
         interestRate = _interestRate;
     }
 
-    function deposit(address _from,uint256 amount) external onlyOwner returns (bool) {
-        if(deposits[_from].amount > 0) {
+    function deposit(address _from, uint256 amount) external onlyOwner returns (bool) {
+        if (deposits[_from].amount > 0) {
             deposits[_from].amount += amount;
             deposits[_from].reward += calculeReward(_from);
             deposits[_from].timestamp = block.timestamp;
-        }else{
-            deposits[_from] = Deposit(amount, block.timestamp,0);
+        } else {
+            deposits[_from] = Deposit(amount, block.timestamp, 0);
         }
         return true;
     }
@@ -60,7 +59,7 @@ contract Staking is Ownable {
 
     function calculeReward(address to) internal view returns (uint256) {
         Deposit memory userDeposit = deposits[to];
-        if(userDeposit.amount == 0) {
+        if (userDeposit.amount == 0) {
             return 0;
         }
         uint256 stakingDuration = block.timestamp - userDeposit.timestamp;
