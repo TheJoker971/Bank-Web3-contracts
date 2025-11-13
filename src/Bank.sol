@@ -6,8 +6,12 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Euro} from "./Euro.sol";
 import {Account} from "./Account.sol";
 import {Share} from "./Share.sol";
+import {Staking} from "./Staking.sol";
 
 contract Bank is Ownable {
+
+    error StakingDoesNotExist(string name);
+
     error AccountAlreadyExists();
     error AccountDoesNotExist();
     error ShareDoesNotExist(string name, string symbol);
@@ -18,12 +22,17 @@ contract Bank is Ownable {
     event MoneyTransferred(address indexed fromAccount, address indexed to, uint256 amount);
     event ShareCreated(string indexed name, string indexed symbol, uint256 initialSupply);
 
+    event StakingCreated(string indexed name, uint256 interestRate);
+
     string public bankName;
     Euro public euroToken;
+
 
     mapping(string name => mapping(string symbol => Share)) private shares;
 
     mapping(bytes32 hashCode => Account) private accounts;
+
+    mapping(string name => Staking) private stakings;
 
     /**
      * @dev Constructor for the Bank contract.
@@ -218,6 +227,45 @@ contract Bank is Ownable {
         require(address(shares[_name][_symbol]) != address(0), ShareDoesNotExist(_name, _symbol));
         Share share = shares[_name][_symbol];
         return share.executeOrder(orderId, executedPrice);
+    }
+
+    function createStaking(string memory _name, uint256 _interestRate) external onlyOwner {
+        require(address(stakings[_name]) == address(0), "Staking already exists");
+        Staking newStaking = new Staking(euroToken, _name, _interestRate);
+        stakings[_name] = newStaking;
+        emit StakingCreated(_name, _interestRate);
+    }
+
+    function depositToStaking(string memory _name, address _from, uint256 amount)
+        external
+        onlyOwner
+        returns (bool)
+    {
+        require(address(stakings[_name]) != address(0), StakingDoesNotExist(_name));
+        Staking staking = stakings[_name];
+        approveBank(_from, amount);
+        euroToken.transferFrom(_from, address(staking), amount);
+        return staking.deposit(_from, amount);
+    }
+
+    function withdrawAllFromStaking(string memory _name, address to)
+        external
+        onlyOwner
+        returns (bool)
+    {
+        require(address(stakings[_name]) != address(0), StakingDoesNotExist(_name));
+        Staking staking = stakings[_name];
+        return staking.withdrawAll(to);
+    }
+
+    function withdrawRewardFromStaking(string memory _name, address to)
+        external
+        onlyOwner
+        returns (bool)
+    {
+        require(address(stakings[_name]) != address(0), StakingDoesNotExist(_name));
+        Staking staking = stakings[_name];
+        return staking.withdrawReward(to);
     }
 
     /**
