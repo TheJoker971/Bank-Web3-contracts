@@ -283,9 +283,9 @@ contract Bank is Ownable {
      * @return The generated hash code.
      */
     function getHashCode(string memory _firstname, string memory _lastname, uint256 _numberAccount)
-    internal
-    pure
-    returns (bytes32)
+        internal
+        pure
+        returns (bytes32)
     {
         bytes32 hash;
         assembly {
@@ -294,23 +294,23 @@ contract Bank is Ownable {
             let lastnamePtr := add(_lastname, 0x20)
             let firstnameLen := mload(_firstname)
             let lastnameLen := mload(_lastname)
-            
+
             // Allouer mémoire temporaire pour concaténer
             let memPtr := mload(0x40)
-            
+
             // Copier firstname
             for { let i := 0 } lt(i, firstnameLen) { i := add(i, 32) } {
                 mstore(add(memPtr, i), mload(add(firstnamePtr, i)))
             }
-            
+
             // Copier lastname après firstname
             for { let i := 0 } lt(i, lastnameLen) { i := add(i, 32) } {
                 mstore(add(memPtr, add(firstnameLen, i)), mload(add(lastnamePtr, i)))
             }
-            
+
             // Ajouter le number account
             mstore(add(memPtr, add(firstnameLen, lastnameLen)), _numberAccount)
-            
+
             // Calculer le hash
             hash := keccak256(memPtr, add(add(firstnameLen, lastnameLen), 32))
         }
