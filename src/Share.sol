@@ -9,6 +9,7 @@ contract Share is ERC20, Ownable {
    
     error InsufficientSupply(uint256 requested, uint256 available);
     error PriceMismatch(uint256 expected, uint256 actual);
+    error OrderDoesNotExist(uint256 orderId);
 
     event OrderPlaced(uint256 orderId, address indexed user, uint256 amount, uint256 price, uint256 timestamp, bool isBuy);
     event ShareCreated(string name, string symbol, uint256 amount, uint256 price);
@@ -23,6 +24,7 @@ contract Share is ERC20, Ownable {
     }
 
     uint256 public immutable MAX_SUPPLY;
+    uint256 public price;
     uint256 public ordersCount;
     ERC20 public euro;
     mapping(uint256 => Order) private orderBook;
@@ -34,9 +36,11 @@ contract Share is ERC20, Ownable {
      * @param _symbol The symbol of the share.
      * @param _maxSupply The maximum supply of the share.
      * @param _price The initial price of the share (for event purposes only).
+     * @param _euro The address of the Euro token contract.
      */
     constructor(string memory _name, string memory _symbol, uint256 _maxSupply, uint256 _price, address _euro) ERC20(_name, _symbol) Ownable(msg.sender) {
         MAX_SUPPLY = _maxSupply;
+        price = _price;
         euro = ERC20(_euro);
         _mint(address(this), _maxSupply);
         emit ShareCreated(_name, _symbol, _maxSupply, _price);
@@ -46,11 +50,11 @@ contract Share is ERC20, Ownable {
      * @dev Buys the share.
      * @param amount The amount of share to buy.
      * @param _to The address to buy the share to.
-     * @param _price The price of the share at the time of purchase.
+     * @return True if the purchase was successful.
      */
-    function buy(uint256 amount, address _to, uint256 _price) public onlyOwner returns (bool) {
+    function buy(uint256 amount, address _to) public onlyOwner returns (bool) {
         _transfer(address(this), _to, amount);
-        emit ShareBought(amount, _price);
+        emit ShareBought(amount, price);
         return true;
     }
 
@@ -58,12 +62,12 @@ contract Share is ERC20, Ownable {
      * @dev Sells the share.
      * @param amount The amount of share to sell.
      * @param _from The address to sell the share from.
-     * @param _price The price of the share at the time of sale.
+     * @return True if the sale was successful.
      */
-    function sell(uint256 amount, address _from, uint256 _price) public onlyOwner returns (bool) {
-        euro.transfer(_from, amount * _price);
+    function sell(uint256 amount, address _from,uint256 _totalCost) public onlyOwner returns (bool) {
+        euro.transfer(_from, _totalCost);
         _transfer(_from, address(this), amount);
-        emit ShareSold(amount, _price);
+        emit ShareSold(amount, price);
         return true;
     }
 
@@ -92,10 +96,11 @@ contract Share is ERC20, Ownable {
         Order memory order = orderBook[orderId];
         address user = orderUsers[orderId];
         require(currentPrice == order.price, PriceMismatch(order.price, currentPrice));
+        price = currentPrice;
         if (order.isBuy) {
-            return buy(order.amount, user, currentPrice);
+            return buy(order.amount, user);
         } else {
-            return sell(order.amount, user, currentPrice);
+            return sell(order.amount, user, order.amount * currentPrice / 1 ether);
         }
     }
 
@@ -105,6 +110,7 @@ contract Share is ERC20, Ownable {
      * @return The order details.
      */
     function getOrder(uint256 orderId) external onlyOwner view returns (Order memory) {
+        require(orderId < ordersCount, OrderDoesNotExist(orderId));
         return orderBook[orderId];
     }
 

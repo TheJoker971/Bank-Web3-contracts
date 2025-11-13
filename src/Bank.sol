@@ -11,6 +11,8 @@ contract Bank is Ownable {
 
     error AccountAlreadyExists();
     error AccountDoesNotExist();
+    error ShareDoesNotExist(string name, string symbol);
+    error ShareAlreadyExists(string name, string symbol);
 
     event BankCreated(string bankName);
     event AccountCreated();
@@ -96,6 +98,7 @@ contract Bank is Ownable {
      * @param _price The price of the share.
      */
     function createShare(string memory _name, string memory _symbol,uint256 _initialSupply,uint256 _price) external onlyOwner {
+        require(address(shares[_name][_symbol]) == address(0), ShareAlreadyExists(_name, _symbol));
         Share newShare = new Share(_name, _symbol, _initialSupply,_price, address(euroToken));
         shares[_name][_symbol] = newShare;
         emit ShareCreated( _name, _symbol, _initialSupply);
@@ -109,7 +112,14 @@ contract Bank is Ownable {
      */
     function getShareAddress(string memory _name, string memory _symbol) external onlyOwner view returns(Share) {
         Share share = shares[_name][_symbol];
+        require(address(share) != address(0), ShareDoesNotExist(_name, _symbol));
         return share;
+    }
+
+    function getOrderOnShare(string memory _name, string memory _symbol, uint256 orderId) external onlyOwner view returns( Share.Order memory ) {
+        require(address(shares[_name][_symbol]) != address(0), ShareDoesNotExist(_name, _symbol));
+        Share share = shares[_name][_symbol];
+        return share.getOrder(orderId);
     }
 
     /**
@@ -123,6 +133,7 @@ contract Bank is Ownable {
     * @return The order ID.
     */
     function placeOrderOnShare(string memory _name, string memory _symbol, uint256 amount, uint256 orderPrice, bool isBuy, address _from) external onlyOwner returns(uint256){
+        require(address(shares[_name][_symbol]) != address(0), ShareDoesNotExist(_name, _symbol));
         Share share = shares[_name][_symbol];
         return share.placeOrder(amount, orderPrice, isBuy,_from);
     }
@@ -133,14 +144,45 @@ contract Bank is Ownable {
     * @param _symbol The symbol of the share.
     * @param amount The amount of share to buy.
     * @param _to The address to buy the share to.
-    * @param _price The price of the share at the time of purchase.
     * @return A boolean indicating whether the purchase was successful.    
     */
-    function buyShare(string memory _name, string memory _symbol, uint256 amount, address _to, uint256 _price) external onlyOwner returns(bool) {
+    function buyShare(string memory _name, string memory _symbol, uint256 amount, address _to) external onlyOwner returns(bool) {
+        require(address(shares[_name][_symbol]) != address(0),ShareDoesNotExist(_name,_symbol));
         Share share = shares[_name][_symbol];
-        approveBank(_to, amount * _price);
-        euroToken.transferFrom(_to, address(share), amount * _price);
-        return share.buy(amount, _to, _price);
+        uint256 totalCost = amount * share.price()/ 1 ether;
+        approveBank(_to, totalCost);
+        euroToken.transferFrom(_to, address(share),totalCost);
+        return share.buy(amount, _to);
+    }
+
+    /**
+    * @dev Sells a share.
+    * @param _name The name of the share.
+    * @param _symbol The symbol of the share.
+    * @param amount The amount of share to sell.
+    * @param _from The address to sell the share from.
+    * @return A boolean indicating whether the sale was successful.    
+    */
+    function sellShare(string memory _name, string memory _symbol, uint256 amount, address _from) external onlyOwner returns(bool) {
+        require(address(shares[_name][_symbol]) != address(0),ShareDoesNotExist(_name,_symbol));
+        Share share = shares[_name][_symbol];
+        uint256 totalCost = amount * share.price() / 1 ether;
+        approveBank(address(share), totalCost);
+        return share.sell(amount, _from,totalCost);
+    }
+
+    /**
+    * @dev Executes an order on a share.
+    * @param _name The name of the share.
+    * @param _symbol The symbol of the share.
+    * @param orderId The ID of the order to execute.
+    * @param executedPrice The price at which the order is executed.
+    * @return A boolean indicating whether the execution was successful.    
+    */
+    function executeOrderOnShare(string memory _name, string memory _symbol, uint256 orderId, uint256 executedPrice) external onlyOwner returns(bool) {
+        require(address(shares[_name][_symbol]) != address(0), ShareDoesNotExist(_name, _symbol));
+        Share share = shares[_name][_symbol];
+        return share.executeOrder(orderId, executedPrice);
     }
 
     /**
