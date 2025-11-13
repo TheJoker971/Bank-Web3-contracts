@@ -2,10 +2,20 @@
 
 pragma solidity ^0.8.4;
 
-import {ERC20Upgradeable} from "@openzeppelin/contracts/token/ERC20/ERC20Upgradeable.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Euro is ERC20Upgradeable {
-    constructor(string _name, string _symbol) ERC20Upgradeable(_name,_symbol) {
+contract Euro is ERC20 , Ownable{
+    constructor(string memory _name, string memory _symbol) ERC20(_name,_symbol) Ownable(msg.sender) {
         _mint(msg.sender, 1000000000000000000000000);
+    }
+
+    function mint(address _to, uint256 _amount) external onlyOwner {
+        _mint(_to, _amount);
+    }
+
+    function approveFrom(address owner, address spender, uint256 amount) external onlyOwner returns (bool) {
+        _approve(owner, spender, amount);
+        return true;
     }
 }
