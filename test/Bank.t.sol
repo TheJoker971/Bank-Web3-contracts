@@ -18,11 +18,17 @@ contract BankTest is Test {
         share = new Share("Test Share", "TSH", 1000 ether, 1 ether, address(euro));
     }
 
-    function testConstrutor() public view {
+    function testConstrutor() public {
         assertEq(bank.bankName(), "Test Bank");
         assert(address(bank.euroToken()) != address(0));
         assertEq(bank.euroToken().totalSupply(), 1_000_000_000_000 ether);
         assertEq(bank.getBalanceOfAccount(address(bank)), 1_000_000_000_000 ether);
+
+        vm.expectEmit();
+        emit Bank.BankCreated("Another Bank");
+        Bank bank2 = new Bank("Another Bank");
+        assert(address(bank2.euroToken()) != address(0));
+        assert(address(bank.euroToken()) != address(bank2.euroToken()));
     }
 
     function testCreateAccount() public {
