@@ -22,7 +22,7 @@ contract BankTest is Test {
         assertEq(bank.bankName(), "Test Bank");
         assert(address(bank.euroToken()) != address(0));
         assertEq(bank.euroToken().totalSupply(), 1_000_000_000_000 ether);
-        assertEq(bank.getBalanceOfAccount(address(bank)),1_000_000_000_000 ether);
+        assertEq(bank.getBalanceOfAccount(address(bank)), 1_000_000_000_000 ether);
     }
 
     function testCreateAccount() public {
@@ -88,7 +88,7 @@ contract BankTest is Test {
         uint256 initialBalance = euro.balanceOf(accountAddress);
         assertEq(initialBalance, 1000 ether);
 
-        bank.transferMoneyToAccount(accountAddress,address(1), 100 ether);
+        bank.transferMoneyToAccount(accountAddress, address(1), 100 ether);
         uint256 finalBalance = euro.balanceOf(accountAddress);
         assertEq(finalBalance, 900 ether);
     }
@@ -168,5 +168,4 @@ contract BankTest is Test {
         vm.expectRevert(abi.encodeWithSelector(Share.OrderDoesNotExist.selector, 1));
         bank.getOrderOnShare("Order Share", "OSH", 1);
     }
-    
 }

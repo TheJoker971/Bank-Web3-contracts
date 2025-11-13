@@ -8,7 +8,6 @@ import {Account} from "./Account.sol";
 import {Share} from "./Share.sol";
 
 contract Bank is Ownable {
-
     error AccountAlreadyExists();
     error AccountDoesNotExist();
     error ShareDoesNotExist(string name, string symbol);
@@ -26,7 +25,7 @@ contract Bank is Ownable {
 
     mapping(bytes32 hashCode => Account) private accounts;
 
-     /**
+    /**
      * @dev Constructor for the Bank contract.
      * @param _bankName The name of the bank.
      */
@@ -43,7 +42,11 @@ contract Bank is Ownable {
      * @param _numberAccount The account number.
      * @return The address of the newly created account.
      */
-    function createAccount(string memory _firstname, string memory _lastname, uint256 _numberAccount) external onlyOwner returns (address) {
+    function createAccount(string memory _firstname, string memory _lastname, uint256 _numberAccount)
+        external
+        onlyOwner
+        returns (address)
+    {
         bytes32 hashCode = getHashCode(_firstname, _lastname, _numberAccount);
         require(address(accounts[hashCode]) == address(0), AccountAlreadyExists());
         Account newAccount = new Account(euroToken);
@@ -60,7 +63,12 @@ contract Bank is Ownable {
      * @param _numberAccount The account number.
      * @return The address of the account.
      */
-    function getAccount(string memory _firstname, string memory _lastname, uint256 _numberAccount) external onlyOwner view returns (address) {
+    function getAccount(string memory _firstname, string memory _lastname, uint256 _numberAccount)
+        external
+        view
+        onlyOwner
+        returns (address)
+    {
         bytes32 hashCode = getHashCode(_firstname, _lastname, _numberAccount);
         Account account = accounts[hashCode];
         require(address(account) != address(0), AccountDoesNotExist());
@@ -72,7 +80,7 @@ contract Bank is Ownable {
      * @param _account The address of the account.
      * @return The balance of the account.
      */
-    function getBalanceOfAccount(address _account) external onlyOwner view returns (uint256) {
+    function getBalanceOfAccount(address _account) external view onlyOwner returns (uint256) {
         require(address(_account) != address(0), AccountDoesNotExist());
         return euroToken.balanceOf(address(_account));
     }
@@ -84,7 +92,7 @@ contract Bank is Ownable {
      * @param _amount The amount of money to transfer.
      * @return A boolean indicating whether the transfer was successful.
      */
-    function transferMoneyToAccount(address _from,address _to, uint256 _amount) external onlyOwner returns(bool ) {
+    function transferMoneyToAccount(address _from, address _to, uint256 _amount) external onlyOwner returns (bool) {
         bool success = Account(_from).transfer(_to, _amount);
         emit MoneyTransferred(_from, _to, _amount);
         return success;
@@ -97,11 +105,14 @@ contract Bank is Ownable {
      * @param _initialSupply The initial supply of the share.
      * @param _price The price of the share.
      */
-    function createShare(string memory _name, string memory _symbol,uint256 _initialSupply,uint256 _price) external onlyOwner {
+    function createShare(string memory _name, string memory _symbol, uint256 _initialSupply, uint256 _price)
+        external
+        onlyOwner
+    {
         require(address(shares[_name][_symbol]) == address(0), ShareAlreadyExists(_name, _symbol));
-        Share newShare = new Share(_name, _symbol, _initialSupply,_price, address(euroToken));
+        Share newShare = new Share(_name, _symbol, _initialSupply, _price, address(euroToken));
         shares[_name][_symbol] = newShare;
-        emit ShareCreated( _name, _symbol, _initialSupply);
+        emit ShareCreated(_name, _symbol, _initialSupply);
     }
 
     /**
@@ -110,96 +121,120 @@ contract Bank is Ownable {
      * @param _symbol The symbol of the share.
      * @return The address of the share.
      */
-    function getShareAddress(string memory _name, string memory _symbol) external onlyOwner view returns(Share) {
+    function getShareAddress(string memory _name, string memory _symbol) external view onlyOwner returns (Share) {
         Share share = shares[_name][_symbol];
         require(address(share) != address(0), ShareDoesNotExist(_name, _symbol));
         return share;
     }
 
-    function getOrderOnShare(string memory _name, string memory _symbol, uint256 orderId) external onlyOwner view returns( Share.Order memory ) {
+    function getOrderOnShare(string memory _name, string memory _symbol, uint256 orderId)
+        external
+        view
+        onlyOwner
+        returns (Share.Order memory)
+    {
         require(address(shares[_name][_symbol]) != address(0), ShareDoesNotExist(_name, _symbol));
         Share share = shares[_name][_symbol];
         return share.getOrder(orderId);
     }
 
     /**
-    * @dev Places an order on a share.
-    * @param _name The name of the share.
-    * @param _symbol The symbol of the share.
-    * @param amount The amount of share to buy or sell.
-    * @param orderPrice The price of the share.
-    * @param isBuy Whether the order is a buy order or a sell order.
-    * @param _from The address placing the order.
-    * @return The order ID.
-    */
-    function placeOrderOnShare(string memory _name, string memory _symbol, uint256 amount, uint256 orderPrice, bool isBuy, address _from) external onlyOwner returns(uint256){
+     * @dev Places an order on a share.
+     * @param _name The name of the share.
+     * @param _symbol The symbol of the share.
+     * @param amount The amount of share to buy or sell.
+     * @param orderPrice The price of the share.
+     * @param isBuy Whether the order is a buy order or a sell order.
+     * @param _from The address placing the order.
+     * @return The order ID.
+     */
+    function placeOrderOnShare(
+        string memory _name,
+        string memory _symbol,
+        uint256 amount,
+        uint256 orderPrice,
+        bool isBuy,
+        address _from
+    ) external onlyOwner returns (uint256) {
         require(address(shares[_name][_symbol]) != address(0), ShareDoesNotExist(_name, _symbol));
         Share share = shares[_name][_symbol];
-        return share.placeOrder(amount, orderPrice, isBuy,_from);
+        return share.placeOrder(amount, orderPrice, isBuy, _from);
     }
 
     /**
-    * @dev Buys a share.
-    * @param _name The name of the share.
-    * @param _symbol The symbol of the share.
-    * @param amount The amount of share to buy.
-    * @param _to The address to buy the share to.
-    * @return A boolean indicating whether the purchase was successful.    
-    */
-    function buyShare(string memory _name, string memory _symbol, uint256 amount, address _to) external onlyOwner returns(bool) {
-        require(address(shares[_name][_symbol]) != address(0),ShareDoesNotExist(_name,_symbol));
+     * @dev Buys a share.
+     * @param _name The name of the share.
+     * @param _symbol The symbol of the share.
+     * @param amount The amount of share to buy.
+     * @param _to The address to buy the share to.
+     * @return A boolean indicating whether the purchase was successful.
+     */
+    function buyShare(string memory _name, string memory _symbol, uint256 amount, address _to)
+        external
+        onlyOwner
+        returns (bool)
+    {
+        require(address(shares[_name][_symbol]) != address(0), ShareDoesNotExist(_name, _symbol));
         Share share = shares[_name][_symbol];
-        uint256 totalCost = amount * share.price()/ 1 ether;
+        uint256 totalCost = amount * share.price() / 1 ether;
         approveBank(_to, totalCost);
-        euroToken.transferFrom(_to, address(share),totalCost);
+        euroToken.transferFrom(_to, address(share), totalCost);
         return share.buy(amount, _to);
     }
 
     /**
-    * @dev Sells a share.
-    * @param _name The name of the share.
-    * @param _symbol The symbol of the share.
-    * @param amount The amount of share to sell.
-    * @param _from The address to sell the share from.
-    * @return A boolean indicating whether the sale was successful.    
-    */
-    function sellShare(string memory _name, string memory _symbol, uint256 amount, address _from) external onlyOwner returns(bool) {
-        require(address(shares[_name][_symbol]) != address(0),ShareDoesNotExist(_name,_symbol));
+     * @dev Sells a share.
+     * @param _name The name of the share.
+     * @param _symbol The symbol of the share.
+     * @param amount The amount of share to sell.
+     * @param _from The address to sell the share from.
+     * @return A boolean indicating whether the sale was successful.
+     */
+    function sellShare(string memory _name, string memory _symbol, uint256 amount, address _from)
+        external
+        onlyOwner
+        returns (bool)
+    {
+        require(address(shares[_name][_symbol]) != address(0), ShareDoesNotExist(_name, _symbol));
         Share share = shares[_name][_symbol];
         uint256 totalCost = amount * share.price() / 1 ether;
         approveBank(address(share), totalCost);
-        return share.sell(amount, _from,totalCost);
+        return share.sell(amount, _from, totalCost);
     }
 
     /**
-    * @dev Executes an order on a share.
-    * @param _name The name of the share.
-    * @param _symbol The symbol of the share.
-    * @param orderId The ID of the order to execute.
-    * @param executedPrice The price at which the order is executed.
-    * @return A boolean indicating whether the execution was successful.    
-    */
-    function executeOrderOnShare(string memory _name, string memory _symbol, uint256 orderId, uint256 executedPrice) external onlyOwner returns(bool) {
+     * @dev Executes an order on a share.
+     * @param _name The name of the share.
+     * @param _symbol The symbol of the share.
+     * @param orderId The ID of the order to execute.
+     * @param executedPrice The price at which the order is executed.
+     * @return A boolean indicating whether the execution was successful.
+     */
+    function executeOrderOnShare(string memory _name, string memory _symbol, uint256 orderId, uint256 executedPrice)
+        external
+        onlyOwner
+        returns (bool)
+    {
         require(address(shares[_name][_symbol]) != address(0), ShareDoesNotExist(_name, _symbol));
         Share share = shares[_name][_symbol];
         return share.executeOrder(orderId, executedPrice);
     }
 
     /**
-    * @dev Approves the bank to spend euros on behalf of an account.
-    * @param _from The address of the account.
-    * @param amount The amount of euros to approve.
-    * @return A boolean indicating whether the approval was successful. 
-    */
+     * @dev Approves the bank to spend euros on behalf of an account.
+     * @param _from The address of the account.
+     * @param amount The amount of euros to approve.
+     * @return A boolean indicating whether the approval was successful.
+     */
     function approveBank(address _from, uint256 amount) internal onlyOwner returns (bool) {
-        return euroToken.approveFrom(_from,address(this), amount);
+        return euroToken.approveFrom(_from, address(this), amount);
     }
 
     /**
-    * @dev Retrieves the allowance of the bank to spend euros on behalf of an account.
-    * @param _from The address of the account.
-    * @return The allowance of the bank. 
-    */
+     * @dev Retrieves the allowance of the bank to spend euros on behalf of an account.
+     * @param _from The address of the account.
+     * @return The allowance of the bank.
+     */
     function allowanceBank(address _from) internal view onlyOwner returns (uint256) {
         return euroToken.allowance(_from, address(this));
     }
@@ -211,9 +246,11 @@ contract Bank is Ownable {
      * @param _numberAccount The account number.
      * @return The generated hash code.
      */
-    function getHashCode(string memory _firstname, string memory _lastname, uint256 _numberAccount) internal pure returns (bytes32) {
+    function getHashCode(string memory _firstname, string memory _lastname, uint256 _numberAccount)
+        internal
+        pure
+        returns (bytes32)
+    {
         return keccak256(abi.encodePacked(_firstname, _lastname, _numberAccount));
     }
-    
-
 }
