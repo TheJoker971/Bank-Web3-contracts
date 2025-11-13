@@ -6,6 +6,8 @@ import {Bank} from "../src/Bank.sol";
 import {Account} from "../src/Account.sol";
 import {Euro} from "../src/Euro.sol";
 import {Share} from "../src/Share.sol";
+import {Staking} from "../src/Staking.sol";
+import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
 contract BankTest is Test {
     Bank bank;
@@ -34,6 +36,12 @@ contract BankTest is Test {
     function testCreateAccount() public {
         address accountAddress = bank.createAccount("John", "Doe", 123456);
         assert(accountAddress != address(0));
+    }
+
+    function testCreateAccountEvent() public {
+        vm.expectEmit(true, true, true, true);
+        emit Bank.AccountCreated(); // Corrected argument count
+        bank.createAccount("John", "Doe", 123456);
     }
 
     function testGetAccount() public {
@@ -69,6 +77,12 @@ contract BankTest is Test {
         assertEq(createdShare.totalSupply(), 0);
     }
 
+    function testCreateShareEvent() public {
+        vm.expectEmit(true, true, true, true);
+        emit Bank.ShareCreated("My Share", "MSH", 5000 ether); // Corrected argument count
+        bank.createShare("My Share", "MSH", 5000 ether, 2 ether);
+    }
+
     function testGetNonExistentShare() public {
         vm.expectRevert(abi.encodeWithSelector(Bank.ShareDoesNotExist.selector, "NonExistent", "NES"));
         bank.getShareAddress("NonExistent", "NES");
@@ -99,9 +113,18 @@ contract BankTest is Test {
         assertEq(finalBalance, 900 ether);
     }
 
+    function testTransferMoneyToNonExistentAccount() public {
+        vm.expectRevert();
+        bank.transferMoneyToAccount(address(0), address(1), 100 ether);
+    }
+
     function testTransferMoneyAccountInsufficientFunds() public {
         address accountAddress = bank.createAccount("Ethan", "Hunt", 555555);
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientBalance.selector, accountAddress, 1000 ether, 2000 ether
+            )
+        );
         bank.transferMoneyToAccount(accountAddress, address(1), 2000 ether);
     }
 
@@ -173,5 +196,56 @@ contract BankTest is Test {
         bank.getOrderOnShare("Ghost Share", "GSH", 0);
         vm.expectRevert(abi.encodeWithSelector(Share.OrderDoesNotExist.selector, 1));
         bank.getOrderOnShare("Order Share", "OSH", 1);
+    }
+
+    function testCreateStaking() public {
+        vm.expectEmit();
+        emit Bank.StakingCreated("Livret A", 3 ether);
+        bank.createStaking("Livret A", 3 ether);
+        vm.expectRevert(abi.encodeWithSelector(Bank.StakingContractAlreadyExists.selector, "Livret A"));
+        bank.createStaking("Livret A", 3 ether);
+    }
+
+    function testDepositToStaking() public {
+        address account = bank.createAccount("Jack", "Sparrow", 121212);
+        bank.createStaking("Super Staking", 5 ether);
+        bool depositSuccess = bank.depositToStaking("Super Staking", account, 100 ether);
+        assert(depositSuccess);
+        vm.expectRevert(abi.encodeWithSelector(Bank.StakingDoesNotExist.selector, "NonExistent Staking"));
+        bank.depositToStaking("NonExistent Staking", account, 100 ether);
+    }
+
+    function testWithdrawAllFromStaking() public {
+        address account = bank.createAccount("Kate", "Winslet", 131313);
+        bank.createStaking("Mega Staking", 4 ether);
+        bank.depositToStaking("Mega Staking", account, 200 ether);
+        vm.warp(block.timestamp + 365 days);
+        bool withdrawSuccess = bank.withdrawAllFromStaking("Mega Staking", account);
+        assert(withdrawSuccess);
+        vm.expectRevert(abi.encodeWithSelector(Bank.StakingDoesNotExist.selector, "Unknown Staking"));
+        bank.withdrawAllFromStaking("Unknown Staking", account);
+    }
+
+    function testWithdrawAllFromNonExistentStaking() public {
+        address account = bank.createAccount("Test", "User", 999999);
+        vm.expectRevert(abi.encodeWithSelector(Bank.StakingDoesNotExist.selector, "NonExistent Staking"));
+        bank.withdrawAllFromStaking("NonExistent Staking", account);
+    }
+
+    function testWithdrawRewardFromStaking() public {
+        address account = bank.createAccount("Leo", "DiCaprio", 141414);
+        bank.createStaking("Ultra Staking", 6 ether);
+        bank.depositToStaking("Ultra Staking", account, 300 ether);
+        vm.warp(block.timestamp + 180 days);
+        bool rewardWithdrawSuccess = bank.withdrawRewardFromStaking("Ultra Staking", account);
+        assert(rewardWithdrawSuccess);
+        vm.expectRevert(abi.encodeWithSelector(Bank.StakingDoesNotExist.selector, "Fake Staking"));
+        bank.withdrawRewardFromStaking("Fake Staking", account);
+    }
+
+    function testWithdrawRewardFromNonExistentStaking() public {
+        address account = bank.createAccount("Test", "User", 888888);
+        vm.expectRevert(abi.encodeWithSelector(Bank.StakingDoesNotExist.selector, "NonExistent Staking"));
+        bank.withdrawRewardFromStaking("NonExistent Staking", account);
     }
 }

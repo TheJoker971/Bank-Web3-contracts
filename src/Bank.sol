@@ -10,6 +10,7 @@ import {Staking} from "./Staking.sol";
 
 contract Bank is Ownable {
     error StakingDoesNotExist(string name);
+    error StakingContractAlreadyExists(string name);
 
     error AccountAlreadyExists();
     error AccountDoesNotExist();
@@ -228,9 +229,10 @@ contract Bank is Ownable {
     }
 
     function createStaking(string memory _name, uint256 _interestRate) external onlyOwner {
-        require(address(stakings[_name]) == address(0), "Staking already exists");
+        require(address(stakings[_name]) == address(0), StakingContractAlreadyExists(_name));
         Staking newStaking = new Staking(euroToken, _name, _interestRate);
         stakings[_name] = newStaking;
+        euroToken.transfer(address(newStaking), 1_000_000 ether);
         emit StakingCreated(_name, _interestRate);
     }
 
