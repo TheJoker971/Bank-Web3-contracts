@@ -29,7 +29,8 @@ contract Staking is Ownable {
             deposits[_from].reward += calculeReward(_from);
             deposits[_from].timestamp = block.timestamp;
         } else {
-            deposits[_from] = Deposit(amount, block.timestamp, 0);
+            deposits[_from].amount = amount;
+            deposits[_from].timestamp = block.timestamp;
         }
         return true;
     }

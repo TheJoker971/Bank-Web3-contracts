@@ -3,9 +3,6 @@ pragma solidity ^0.8.4;
 
 import {Script, console} from "forge-std/Script.sol";
 import {Bank} from "../src/Bank.sol";
-import {IAccount} from "../src/interfaces/IAccount.sol";
-import {Euro} from "../src/Euro.sol";
-import {Share} from "../src/Share.sol";
 
 contract CreateAccountScript is Script {
     function run() external {

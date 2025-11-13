@@ -69,7 +69,7 @@ contract Share is ERC20, Ownable {
      * @return True if the sale was successful.
      */
     function sell(uint256 amount, address _from, uint256 _totalCost) public onlyOwner returns (bool) {
-        euro.transfer(_from, _totalCost);
+        require(euro.transfer(_from, _totalCost));
         _transfer(_from, address(this), amount);
         emit ShareSold(amount, price);
         return true;
@@ -88,7 +88,10 @@ contract Share is ERC20, Ownable {
         onlyOwner
         returns (uint256)
     {
-        orderBook[ordersCount] = Order(amount, orderPrice, block.timestamp, isBuy);
+        orderBook[ordersCount].amount = amount;
+        orderBook[ordersCount].price = orderPrice;
+        orderBook[ordersCount].timestamp = block.timestamp;
+        orderBook[ordersCount].isBuy = isBuy;
         orderUsers[ordersCount] = sender;
         emit OrderPlaced(ordersCount, sender, amount, orderPrice, block.timestamp, isBuy);
         ordersCount++;

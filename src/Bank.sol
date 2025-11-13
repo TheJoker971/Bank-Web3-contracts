@@ -186,7 +186,7 @@ contract Bank is Ownable {
         Share share = shares[_name][_symbol];
         uint256 totalCost = amount * share.price() / 1 ether;
         approveBank(_to, totalCost);
-        euroToken.transferFrom(_to, address(share), totalCost);
+        require(euroToken.transferFrom(_to, address(share), totalCost));
         return share.buy(amount, _to);
     }
 
@@ -232,7 +232,7 @@ contract Bank is Ownable {
         require(address(stakings[_name]) == address(0), StakingContractAlreadyExists(_name));
         Staking newStaking = new Staking(euroToken, _name, _interestRate);
         stakings[_name] = newStaking;
-        euroToken.transfer(address(newStaking), 1_000_000 ether);
+        require(euroToken.transfer(address(newStaking), 1_000_000 ether));
         emit StakingCreated(_name, _interestRate);
     }
 
@@ -240,7 +240,7 @@ contract Bank is Ownable {
         require(address(stakings[_name]) != address(0), StakingDoesNotExist(_name));
         Staking staking = stakings[_name];
         approveBank(_from, amount);
-        euroToken.transferFrom(_from, address(staking), amount);
+        require(euroToken.transferFrom(_from, address(staking), amount));
         return staking.deposit(_from, amount);
     }
 
@@ -283,10 +283,37 @@ contract Bank is Ownable {
      * @return The generated hash code.
      */
     function getHashCode(string memory _firstname, string memory _lastname, uint256 _numberAccount)
-        internal
-        pure
-        returns (bytes32)
+    internal
+    pure
+    returns (bytes32)
     {
-        return keccak256(abi.encodePacked(_firstname, _lastname, _numberAccount));
+        bytes32 hash;
+        assembly {
+            // Charger les pointeurs des strings
+            let firstnamePtr := add(_firstname, 0x20)
+            let lastnamePtr := add(_lastname, 0x20)
+            let firstnameLen := mload(_firstname)
+            let lastnameLen := mload(_lastname)
+            
+            // Allouer mémoire temporaire pour concaténer
+            let memPtr := mload(0x40)
+            
+            // Copier firstname
+            for { let i := 0 } lt(i, firstnameLen) { i := add(i, 32) } {
+                mstore(add(memPtr, i), mload(add(firstnamePtr, i)))
+            }
+            
+            // Copier lastname après firstname
+            for { let i := 0 } lt(i, lastnameLen) { i := add(i, 32) } {
+                mstore(add(memPtr, add(firstnameLen, i)), mload(add(lastnamePtr, i)))
+            }
+            
+            // Ajouter le number account
+            mstore(add(memPtr, add(firstnameLen, lastnameLen)), _numberAccount)
+            
+            // Calculer le hash
+            hash := keccak256(memPtr, add(add(firstnameLen, lastnameLen), 32))
+        }
+        return hash;
     }
 }

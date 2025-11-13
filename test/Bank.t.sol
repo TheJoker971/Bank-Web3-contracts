@@ -3,10 +3,8 @@ pragma solidity ^0.8.4;
 
 import {Test} from "forge-std/Test.sol";
 import {Bank} from "../src/Bank.sol";
-import {Account} from "../src/Account.sol";
 import {Euro} from "../src/Euro.sol";
 import {Share} from "../src/Share.sol";
-import {Staking} from "../src/Staking.sol";
 import {IERC20Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
 contract BankTest is Test {
