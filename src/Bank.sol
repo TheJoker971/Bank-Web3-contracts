@@ -256,7 +256,7 @@ contract Bank is Ownable {
         return staking.withdrawReward(to);
     }
 
-    function showStakingReward(string memory _name,address _to) external view onlyOwner returns(uint256) {
+    function showStakingReward(string memory _name, address _to) external view onlyOwner returns (uint256) {
         require(address(stakings[_name]) != address(0), StakingDoesNotExist(_name));
         return stakings[_name].showTotalReward(_to);
     }
