@@ -68,6 +68,10 @@ contract Staking is Ownable {
         return reward;
     }
 
+    function showTotalReward(address _to) external view onlyOwner returns(uint256) {
+        return calculeReward(_to);
+    }
+
     receive() external payable {
         // Accept ETH deposits
         return;
