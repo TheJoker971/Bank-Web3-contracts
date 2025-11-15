@@ -9,6 +9,7 @@ contract Share is ERC20, Ownable {
     error InsufficientSupply(uint256 requested, uint256 available);
     error PriceMismatch(uint256 expected, uint256 actual);
     error OrderDoesNotExist(uint256 orderId);
+    error OrderAlreadyExecuted(uint256 orderId);
 
     event OrderPlaced(
         uint256 orderId, address indexed user, uint256 amount, uint256 price, uint256 timestamp, bool isBuy
@@ -22,6 +23,7 @@ contract Share is ERC20, Ownable {
         uint256 price;
         uint256 timestamp;
         bool isBuy;
+        bool isClosed;
     }
 
     uint256 public immutable MAX_SUPPLY;
@@ -106,6 +108,7 @@ contract Share is ERC20, Ownable {
     function executeOrder(uint256 orderId, uint256 currentPrice) external onlyOwner returns (bool) {
         Order memory order = orderBook[orderId];
         address user = orderUsers[orderId];
+        require(!order.isClosed, OrderAlreadyExecuted(orderId));
         require(currentPrice == order.price, PriceMismatch(order.price, currentPrice));
         price = currentPrice;
         if (order.isBuy) {
